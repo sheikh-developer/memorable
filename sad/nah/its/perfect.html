@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sheikh Notes - লিখন শেখের সাথে চ্যাট</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(to bottom, #0d0d0d, #1a1a1a);
+            color: #fff;
+            font-family: 'Noto Serif Bengali', serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .glass-box {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            width: min(90%, 600px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            animation: fadeIn 1s ease-out;
+        }
+
+        .chat-box {
+            height: 300px;
+            margin: 20px 0;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 15px;
+            border-radius: 10px;
+            scrollbar-width: thin;
+            scrollbar-color: #666 #333;
+        }
+
+        .chat-message {
+            margin-bottom: 12px;
+            text-align: left;
+            word-wrap: break-word;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            outline: none;
+        }
+
+        button {
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: none;
+            background: #4CAF50;
+            color: #fff;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        .footer {
+            position: fixed;
+            bottom: 10px;
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <main class="glass-box">
+        <div class="chat-box" id="chatBox"></div>
+        <div class="input-container">
+            <input type="text" id="userInput" placeholder="আপনার বার্তা লিখুন..." autocomplete="off">
+            <button onclick="sendMessage()">পাঠান</button>
+        </div>
+    </main>
+    <footer class="footer">© 2025 Sheikh Developer | একদিন তুমি বুঝবে...</footer>
+
+    <script>
+        const API_KEY = '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';
+        const ENDPOINT = 'https://router.huggingface.co/sambanova/v1/chat/completions';
+        const chatBox = document.getElementById('chatBox');
+        const userInput = document.getElementById('userInput');
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            displayMessage(message, 'user');
+            userInput.value = '';
+            
+            const requestData = {
+                model: 'QwQ-32B',
+                messages: [{ role: 'user', content: message }],
+                max_tokens: 500,
+                stream: true
+            };
+
+            try {
+                const response = await fetch(ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                if (!response.ok) throw new Error('API request failed');
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let fullResponse = '';
+                let messageElement = null;
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+
+                    fullResponse += decoder.decode(value, { stream: true });
+                    if (!messageElement) {
+                        messageElement = displayMessage('', 'likhon');
+                    }
+                    messageElement.textContent = `লিখন: ${fullResponse}`;
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                displayMessage('মডেলের সাথে যোগাযোগে সমস্যা হয়েছে।', 'likhon');
+            }
+        }
+
+        function displayMessage(message, sender) {
+            const element = document.createElement('div');
+            element.className = 'chat-message';
+            element.textContent = `${sender === 'user' ? 'আপনি' : 'লিখন'}: ${message}`;
+            chatBox.appendChild(element);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            return element;
+        }
+
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+</html>
